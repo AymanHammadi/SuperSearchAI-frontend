@@ -393,7 +393,7 @@ function App() {
       />
 
       {/* Search Input */}
-      <div className="fixed bottom-0 w-full bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70 p-3 border-t-2 border-border shadow-warm-lg">
+      <div className="sticky bottom-0 w-full bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70 p-3 border-t-2 border-border ">
         <SearchInput
           onSearch={handleSearch}
           onProviderChange={setSelectedProvider}
