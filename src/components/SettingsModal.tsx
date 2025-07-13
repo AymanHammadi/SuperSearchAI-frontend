@@ -6,7 +6,7 @@ import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Settings, Eye, EyeOff, Trash2, Save, Key } from 'lucide-react';
-import { type LLMProvider, providerLabels, getApiKey, setApiKey, deleteApiKey } from '../lib/apiKeys';
+import { type LLMProvider, providerLabels, getApiKey, setApiKey, deleteApiKey, getModel, setModel, getBaseUrl, setBaseUrl, defaultModels, defaultBaseUrls } from '../lib/apiKeys';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -15,6 +15,8 @@ interface SettingsModalProps {
 
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [apiKeys, setApiKeys] = useState<Record<LLMProvider, string>>({} as Record<LLMProvider, string>);
+  const [models, setModels] = useState<Record<LLMProvider, string>>({} as Record<LLMProvider, string>);
+  const [baseUrls, setBaseUrls] = useState<Record<LLMProvider, string>>({} as Record<LLMProvider, string>);
   const [showKeys, setShowKeys] = useState<Record<LLMProvider, boolean>>({} as Record<LLMProvider, boolean>);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -23,16 +25,22 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   useEffect(() => {
     if (isOpen) {
-      // Load current API keys when modal opens
+      // Load current settings when modal opens
       const loadedKeys = {} as Record<LLMProvider, string>;
+      const loadedModels = {} as Record<LLMProvider, string>;
+      const loadedBaseUrls = {} as Record<LLMProvider, string>;
       const initialShowKeys = {} as Record<LLMProvider, boolean>;
       
       providers.forEach(provider => {
         loadedKeys[provider] = getApiKey(provider) || '';
+        loadedModels[provider] = getModel(provider);
+        loadedBaseUrls[provider] = getBaseUrl(provider);
         initialShowKeys[provider] = false;
       });
       
       setApiKeys(loadedKeys);
+      setModels(loadedModels);
+      setBaseUrls(loadedBaseUrls);
       setShowKeys(initialShowKeys);
       setHasChanges(false);
     }
@@ -40,6 +48,16 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const handleKeyChange = (provider: LLMProvider, value: string) => {
     setApiKeys(prev => ({ ...prev, [provider]: value }));
+    setHasChanges(true);
+  };
+
+  const handleModelChange = (provider: LLMProvider, value: string) => {
+    setModels(prev => ({ ...prev, [provider]: value }));
+    setHasChanges(true);
+  };
+
+  const handleBaseUrlChange = (provider: LLMProvider, value: string) => {
+    setBaseUrls(prev => ({ ...prev, [provider]: value }));
     setHasChanges(true);
   };
 
@@ -52,14 +70,26 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setHasChanges(true);
   };
 
-  const saveKeys = () => {
+  const resetToDefaults = (provider: LLMProvider) => {
+    setModels(prev => ({ ...prev, [provider]: defaultModels[provider] }));
+    setBaseUrls(prev => ({ ...prev, [provider]: defaultBaseUrls[provider] }));
+    setHasChanges(true);
+  };
+
+  const saveSettings = () => {
     providers.forEach(provider => {
       const key = apiKeys[provider];
+      const model = models[provider];
+      const baseUrl = baseUrls[provider];
+      
       if (key && key.trim()) {
         setApiKey(provider, key.trim());
       } else {
         deleteApiKey(provider);
       }
+      
+      setModel(provider, model || defaultModels[provider]);
+      setBaseUrl(provider, baseUrl || defaultBaseUrls[provider]);
     });
     setHasChanges(false);
     onClose();
@@ -88,9 +118,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     const status = getKeyStatus(provider);
     switch (status) {
       case 'configured':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800">Configured</Badge>;
+        return <Badge variant="secondary" className="bg-success-100 text-success-800">Configured</Badge>;
       case 'new':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">New</Badge>;
+        return <Badge variant="secondary" className="bg-primary-100 text-primary-800">New</Badge>;
       case 'deleted':
         return <Badge variant="destructive">Deleted</Badge>;
       default:
@@ -104,10 +134,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
-            API Key Settings
+            LLM Provider Settings
           </DialogTitle>
           <DialogDescription>
-            Manage your API keys for different LLM providers. Keys are stored locally and securely in your browser.
+            Configure your LLM providers including API keys, models, and base URLs. Settings are stored locally and securely in your browser.
           </DialogDescription>
         </DialogHeader>
 
@@ -123,49 +153,90 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   {getStatusBadge(provider)}
                 </CardTitle>
                 <CardDescription className="text-sm">
-                  API key for {providerLabels[provider]} service
+                  Configure {providerLabels[provider]} settings
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <Label htmlFor={`key-${provider}`} className="text-sm font-medium">
-                        API Key
-                      </Label>
-                      <div className="flex gap-2 mt-1">
-                        <Input
-                          id={`key-${provider}`}
-                          type={showKeys[provider] ? "text" : "password"}
-                          placeholder="Enter your API key..."
-                          value={apiKeys[provider] || ''}
-                          onChange={(e) => handleKeyChange(provider, e.target.value)}
-                          className="flex-1"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleShowKey(provider)}
-                          title={showKeys[provider] ? "Hide key" : "Show key"}
-                        >
-                          {showKeys[provider] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteKey(provider)}
-                          disabled={!apiKeys[provider]}
-                          title="Delete key"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                <div className="space-y-4">
+                  {/* API Key Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor={`key-${provider}`} className="text-sm font-medium flex items-center gap-1">
+                      <Key className="h-3 w-3" />
+                      API Key
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id={`key-${provider}`}
+                        type={showKeys[provider] ? "text" : "password"}
+                        placeholder="Enter your API key..."
+                        value={apiKeys[provider] || ''}
+                        onChange={(e) => handleKeyChange(provider, e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleShowKey(provider)}
+                        title={showKeys[provider] ? "Hide key" : "Show key"}
+                      >
+                        {showKeys[provider] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteKey(provider)}
+                        disabled={!apiKeys[provider]}
+                        title="Delete key"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  
-                  
+
+                  {/* Model Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor={`model-${provider}`} className="text-sm font-medium flex items-center gap-1">
+                      <Settings className="h-3 w-3" />
+                      Model
+                    </Label>
+                    <Input
+                      id={`model-${provider}`}
+                      type="text"
+                      placeholder={`Default: ${defaultModels[provider]}`}
+                      value={models[provider] || ''}
+                      onChange={(e) => handleModelChange(provider, e.target.value)}
+                    />
+                  </div>
+
+                  {/* Base URL Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor={`baseUrl-${provider}`} className="text-sm font-medium flex items-center gap-1">
+                      <Settings className="h-3 w-3" />
+                      Base URL
+                    </Label>
+                    <Input
+                      id={`baseUrl-${provider}`}
+                      type="text"
+                      placeholder={provider === 'ollama' ? 'http://localhost:11434' : 'Leave empty for default'}
+                      value={baseUrls[provider] || ''}
+                      onChange={(e) => handleBaseUrlChange(provider, e.target.value)}
+                    />
+                  </div>
+
+                  {/* Reset to Defaults Button */}
+                  <div className="pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => resetToDefaults(provider)}
+                      className="text-xs"
+                    >
+                      Reset to Defaults
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -180,7 +251,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <Button variant="outline" onClick={cancelChanges}>
               Cancel
             </Button>
-            <Button onClick={saveKeys} disabled={!hasChanges}>
+            <Button onClick={saveSettings} disabled={!hasChanges}>
               <Save className="h-4 w-4 mr-2" />
               Save Changes
             </Button>

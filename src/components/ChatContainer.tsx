@@ -32,24 +32,31 @@ export function ChatContainer({
   }, [messages]);
 
   return (
-    <div className={cn("flex-1 overflow-y-auto p-4", className)}>
+    <div className={cn("flex-1 overflow-y-auto p-6 bg-white", className)}>
       <div className="max-w-4xl mx-auto">
         {messages.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="max-w-md mx-auto space-y-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                <Bot className="h-8 w-8 text-primary" />
+          <div className="text-center py-20">
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="w-20 h-20 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+                <Bot className="h-10 w-10 text-secondary" />
               </div>
-              <h3 className="text-xl font-semibold text-foreground">
-                Welcome to Super Search AI
-              </h3>
-              <p className="text-muted-foreground">
-                Start by typing your query below. I'll ask clarification questions to provide better results.
-              </p>
+              <div className="space-y-3">
+                <h3 className="text-2xl font-bold text-gray-900">
+                  Welcome to Super Search AI
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  Ask me anything and I'll search the web intelligently. 
+                </p>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <p className="text-sm text-blue-800">
+                  💡 <strong>Tip:</strong> Be specific with your queries for better results
+                </p>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {messages.map((message) => (
               <ChatMessage
                 key={message.id}
@@ -60,12 +67,11 @@ export function ChatContainer({
             
             {/* Submit Button */}
             {showSubmitButton && (
-              <div className="flex justify-center py-4">
+              <div className="flex justify-center py-6">
                 <Button
                   onClick={onSubmitAnswers}
                   disabled={isLoading}
                   size="lg"
-                  className="px-8"
                 >
                   <Send className="h-4 w-4 mr-2" />
                   {isLoading ? "Processing..." : "Submit Answers"}
